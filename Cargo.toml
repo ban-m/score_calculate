@@ -12,5 +12,4 @@ bio = "*"
 rand = "*"
 rayon = "*"
 histogram_minimizer = {path = "../histogram_minimizer"}
-irabu = {path = "../irabu"}
 utility = {path = "../utility"}

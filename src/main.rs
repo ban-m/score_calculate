@@ -1,7 +1,6 @@
 extern crate bio;
 extern crate dtw;
 extern crate fast5wrapper;
-extern crate irabu;
 extern crate rand;
 extern crate rayon;
 extern crate squiggler;
