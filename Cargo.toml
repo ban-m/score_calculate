@@ -1,0 +1,16 @@
+[package]
+name = "score_calculate"
+version = "0.1.0"
+authors = ["ban-m <ban-m@g.ecc.u-tokyo.ac.jp>"]
+
+[dependencies]
+dtw = {path = "../dtw"}
+squiggler = {path = "../squiggler"}
+fast5wrapper = {path = "../fast5wrapper"}
+knn_predictor = {path = "../knn_predictor"}
+bio = "*"
+rand = "*"
+rayon = "*"
+histogram_minimizer = {path = "../histogram_minimizer"}
+irabu = {path = "../irabu"}
+utility = {path = "../utility"}

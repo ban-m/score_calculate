@@ -1,0 +1,66 @@
+#!/bin/bash
+#$ -S /bin/bash
+#$ -N score
+#$ -cwd
+#$ -pe smp 24
+#$ -e ./result/scoreerr
+#$ -o ./result/scoreout
+#$ -V
+## This is a cluster mode script for calculating scores.
+## Only needed scores are calculated.
+
+QUERIES=/data/queries/training/scorecalc
+ECOLIREF=/glusterfs/ban-m/references/ecoli/ecolik12.fa
+MODEL=/home/ban-m/kmer_models/r9.2_180mv_250bps_6mer/template_median68pA.model
+REFSIZE=100
+SAM=/glusterfs/ban-m/bwamap/mapped.sam
+QUERY_SIZE=250
+
+## Baseline(Sub dynamic time warping without chunking)
+echo "refsize,querysize,true_positive,false_positive,positive_num,test_num,method,metric,power" > result/score_baseline_sub_wo_chunking.csv
+cargo run --release -- $MODEL $REFSIZE $ECOLIREF $QUERIES $SAM Sub 500 KNN Hill 0 >> result/score_baseline_sub_wo_chunking.csv
+
+echo "refsize,querysize,true_positive,false_positive,positive_num,test_num,method,metric,power" > result/score_baseline_sub_w_chunking.csv
+# Sub dtw mode
+for power in $(seq 35 1 40)
+do
+    cargo run --release  $MODEL $REFSIZE $ECOLIREF $QUERIES $SAM Sub $QUERY_SIZE KNN Hill ${power} >> result/score_baseline_sub_w_chunking.csv
+done
+
+
+# Scouting dtw mode(KNN)
+echo "refsize,querysize,num_scouts,num_packs,true_positive,false_positive,positive_num,test_num,method,metric,power" > result/score_baseline_scouting_w_chunking.csv
+for packs in $(seq 2 1 3)
+do
+    for scouts in $(seq 14 2 20)
+    do
+	    for power in $(seq 35 1 38)
+	    do
+	        cargo run --release $MODEL $REFSIZE $ECOLIREF $QUERIES $SAM Scouting,${scouts},${packs} $QUERY_SIZE KNN Hill ${power} >> result/score_baseline_scouting_w_chunking.csv
+	    done
+    done
+done
+
+
+## proposed method
+echo "refsize,querysize,num_scouts,num_packs,true_positive,false_positive,positive_num,test_num,method,metric,power" > result/score_proposed.csv
+for packs in $(seq 2 1 3)
+do
+    for scouts in $(seq 14 2 20)
+    do
+	    for power in $(seq 35 1 38)
+	    do
+	        cargo run --release $MODEL $REFSIZE $ECOLIREF $QUERIES $SAM Scouting,${scouts},${packs} $QUERY_SIZE PC Hill ${power} >> result/score_proposed.csv
+	    done
+    done
+done
+
+# Chiba DTW mode
+echo "refsize,querysize,bandwidth,true_positive,false_positive,positive_num,test_num,method,metric,power" > result/score_baseline_sakoechiba_w_chunking.csv
+for bandwidth in $(seq 11 10 91)
+do
+    for power in $(seq 35 1 40)
+    do
+	    cargo run --release $MODEL $REFSIZE $ECOLIREF $QUERIES $SAM Chiba,${bandwidth} 500 KNN Hill ${power} >> result/score_baseline_sakoechiba_w_chunking.csv
+    done
+done
