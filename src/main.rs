@@ -1,13 +1,18 @@
-extern crate bio;
-extern crate dtw;
-extern crate rand;
-extern crate rayon;
-extern crate squiggler;
-extern crate utility;
 use rayon::prelude::*;
+use serde::*;
 use std::path::Path;
 use utility::utilities;
-const FRACTION:usize =1000;// means 0.1 percent.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct DataSet {
+    records: Vec<Data>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Data {
+    id: String,
+    means: Vec<f32>,
+}
+
+const FRACTION: usize = 1000; // means 0.1 percent.
 const TRAINING_NUM: usize = 4_000;
 fn main() {
     let args: Vec<_> = std::env::args().collect();
@@ -17,7 +22,14 @@ fn main() {
     // convert to squiggle, normalize.
     let temp = utilities::convert_to_squiggle(&temp, &model);
     let rev = utilities::convert_to_squiggle(&rev, &model);
-    let queries = utilities::get_queries(&args[4],1000,100_000).expect("queries");
+    let rdr = std::io::BufReader::new(std::fs::File::open(&args[4]).unwrap());
+    let queries: DataSet = serde_json::de::from_reader(rdr).unwrap();
+    let queries: Vec<_> = queries
+        .records
+        .into_iter()
+        .map(|e| (e.id, e.means))
+        .collect();
+    // let queries = utilities::get_queries(&args[4], 1000, 100_000).expect("queries");
     let sam = utilities::get_sam(&args[5]).expect("sam");
     let mode = utilities::get_mode(&args[6]).expect("mode");
     let querysize: usize = args[7].parse().expect("querysize");
@@ -40,7 +52,7 @@ fn main() {
     let (true_positive, false_positive, positive_num, test_num) =
         utilities::compute_k_folds(&data, data.len() / TRAINING_NUM)
             .par_iter()
-            .map(|&(ref test,ref train)| {
+            .map(|&(ref test, ref train)| {
                 let takenum = test.len() / FRACTION;
                 let train: Vec<_> = train.iter().fold(vec![], |mut acc, &(pos, neg)| {
                     acc.push((pos, true));
@@ -48,7 +60,8 @@ fn main() {
                     acc
                 });
                 // take first takenum number as positive, the rest as negative
-                let test = test.iter()
+                let test = test
+                    .iter()
                     .fold((0, vec![]), |(cum, mut acc), &(pos, neg)| {
                         if cum < takenum {
                             acc.push((pos, true));
@@ -61,9 +74,10 @@ fn main() {
                     .1;
                 utilities::validate_for_single_pack(&train, &test, method)
             })
-        .reduce(||(0, 0, 0, 0), |acc, x| {
-                (acc.0 + x.0, acc.1 + x.1, acc.2 + x.2, acc.3 + x.3)
-            });
+            .reduce(
+                || (0, 0, 0, 0),
+                |acc, x| (acc.0 + x.0, acc.1 + x.1, acc.2 + x.2, acc.3 + x.3),
+            );
     use dtw::Mode;
     match mode {
         Mode::Sub => println!(

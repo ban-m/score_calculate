@@ -6,25 +6,56 @@
 #$ -e ./result/scoreerr
 #$ -o ./result/scoreout
 #$ -V
-## This is a cluster mode script for calculating scores.
 set -ue
-## You may consider modifying the variables below:
+DATA=${PWD}/data
+mkdir -p ${DATA}
+QUERIES=${DATA}/queries/
 
-## The directly containing .fast5 file.
-QUERIES=/glusterfs/ban-m/E_coli_K12_1D_R9.2_SpotON_2/downloads/pass
+## These are events extracted by Python script named `${PWD}/scripts/extract.py`.
+## It is obtained by
+## ```bash
+## wget https://s3.climb.ac.uk/nanopore/E_coli_K12_1D_R9.2_SpotON_2.tgz
+## tar -xvf E_coli_K12_1D_R9.2_SpotON_2.tgz
+## python3 ${PWD}/scripts/extract.py ${PWD}/E_coli_K12_1D_R9.2_SpotON_2/downloads/pass/ 2000 ${QUERIES}/events.json
+## ```
+## It requires ONT's fast5 API packages.
+QUERY=${DATA}/events.json
+if ! [ -e ${QUERY} ]
+then
+    wget https://mlab.cb.k.u-tokyo.ac.jp/~ban-m/read_until_paper/events.json.gz -O ${QUERY}.gz
+    gunzip ${QUERY}.gz
+fi
 
 ## Reference file
-ECOLIREF=/glusterfs/ban-m/references/ecoli/ecolik12.fa
+ECOLIREF=${DATA}/EColi_k12.fasta
+if ! [ -e ${ECOLIREF} ]
+then
+    wget http://togows.dbcls.jp/entry/nucleotide/U00096.3.fasta -O ${ECOLIREF}
+    # ECOLIREF=/glusterfs/ban-m/references/ecoli/ecolik12.fa
+fi
 
 ## Molde file.
-MODEL=${PWD}/../kmer_models/r9.2_180mv_250bps_6mer/template_median68pA.model
+MODEL=${PWD}/kmer_models/r9.2_180mv_250bps_6mer/template_median68pA.model
+if ! [ -d ${PWD}/kmer_models ]
+then
+    git clone https://github.com/nanoporetech/kmer_models.git
+fi
 
 ## Reference size
 REFSIZE=100
 
-## SAM file (this should be created by mapping .fastq file from $QUERIES/*.fast5 to $ECOLIREF so that
-## the script can know where the "correct" alignemnts begin).
-SAM=/glusterfs/ban-m/bwamap/mapped.sam
+## SAM File. Mapping from query reads -> ECOLIREF.
+READS=${DATA}/query.fasta
+SAM=${DATA}/mapping.sam
+if ! [ -e ${READS} ]
+then
+    wget https://s3.climb.ac.uk/nanopore/E_coli_K12_1D_R9.2_SpotON_2.pass.fasta -O ${READS}
+fi
+if ! [ -e ${SAM} ]
+then
+    minimap2 -a -x map-ont ${ECOLIREF} ${READS} > ${SAM}
+fi
+
 
 ## The amount of events this script can see to map a event sequence to reference.
 QUERY_SIZE=250
