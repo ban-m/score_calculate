@@ -3,20 +3,21 @@
 #$ -N score
 #$ -cwd
 #$ -pe smp 24
-#$ -e ./result/scoreerr
-#$ -o ./result/scoreout
 #$ -V
 set -ue
 DATA=${PWD}/data
 mkdir -p ${DATA}
-QUERIES=${DATA}/queries/
+
+
+#### ====== Prepare dataset ==================
+
 
 ## These are events extracted by Python script named `${PWD}/scripts/extract.py`.
 ## It is obtained by
 ## ```bash
 ## wget https://s3.climb.ac.uk/nanopore/E_coli_K12_1D_R9.2_SpotON_2.tgz
 ## tar -xvf E_coli_K12_1D_R9.2_SpotON_2.tgz
-## python3 ${PWD}/scripts/extract.py ${PWD}/E_coli_K12_1D_R9.2_SpotON_2/downloads/pass/ 2000 ${QUERIES}/events.json
+## python3 ${PWD}/scripts/extract.py ${PWD}/E_coli_K12_1D_R9.2_SpotON_2/downloads/pass/ 1200 ${QUERIES}/events.json
 ## ```
 ## It requires ONT's fast5 API packages.
 QUERY=${DATA}/events.json
@@ -25,13 +26,11 @@ then
     wget https://mlab.cb.k.u-tokyo.ac.jp/~ban-m/read_until_paper/events.json.gz -O ${QUERY}.gz
     gunzip ${QUERY}.gz
 fi
-
 ## Reference file
 ECOLIREF=${DATA}/EColi_k12.fasta
 if ! [ -e ${ECOLIREF} ]
 then
     wget http://togows.dbcls.jp/entry/nucleotide/U00096.3.fasta -O ${ECOLIREF}
-    # ECOLIREF=/glusterfs/ban-m/references/ecoli/ecolik12.fa
 fi
 
 ## Molde file.
@@ -51,6 +50,7 @@ if ! [ -e ${READS} ]
 then
     wget https://s3.climb.ac.uk/nanopore/E_coli_K12_1D_R9.2_SpotON_2.pass.fasta -O ${READS}
 fi
+
 if ! [ -e ${SAM} ]
 then
     minimap2 -a -x map-ont ${ECOLIREF} ${READS} > ${SAM}
@@ -60,12 +60,12 @@ fi
 ## The amount of events this script can see to map a event sequence to reference.
 QUERY_SIZE=250
 
-echo "refsize,querysize,num_scouts,num_packs,true_positive,false_positive,positive_num,test_num,method,metric,power" >> test.csv # result/score_proposed.csv
+### =================== RUN ===========================
+
+echo "refsize,querysize,num_scouts,num_packs,true_positive,false_positive,positive_num,test_num,method,metric,power" >> result/score_proposed.csv
 packs=1
 scouts=16
 power=35
-cargo run --release $MODEL $REFSIZE $ECOLIREF $QUERIES $SAM Scouting,${scouts},${packs} $QUERY_SIZE PC Hill ${power} >> test.csv
-exit 0;
 for packs in $(seq 2 1 3)
 do
     for scouts in $(seq 14 2 20)

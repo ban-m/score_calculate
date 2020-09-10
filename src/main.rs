@@ -27,7 +27,9 @@ fn main() {
     let queries: Vec<_> = queries
         .records
         .into_iter()
-        .map(|e| (e.id, e.means))
+        .filter(|e| e.means.len() > 1100)
+        .map(|e| (e.id, e.means[50..1050].to_vec()))
+        .take(100_000)
         .collect();
     // let queries = utilities::get_queries(&args[4], 1000, 100_000).expect("queries");
     let sam = utilities::get_sam(&args[5]).expect("sam");

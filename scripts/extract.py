@@ -35,11 +35,12 @@ if __name__=='__main__':
     DATA_DIR=sys.argv[1]
     EVENT_LENGTH=int(sys.argv[2])
     OUTPUT=sys.argv[3]
+    TAKE_NUM=120000
     print("Read from {}. Event length:{}.".format(DATA_DIR, EVENT_LENGTH))
     print("Read Out to {}".format(OUTPUT))
     directory = Path(DATA_DIR)
     with open(OUTPUT, 'w') as output: 
-        result = list(map(lambda file: Data(str(file), EVENT_LENGTH), directory.glob('*.fast5')))
+        result = list(itertools.islice(map(lambda file: Data(str(file), EVENT_LENGTH), directory.glob('*.fast5')), TAKE_NUM))
         records = {'records': result}
         json.dump(records, output, cls = DataEncoder)
 
