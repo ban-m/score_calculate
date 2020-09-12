@@ -15,7 +15,7 @@ mkdir -p ${DATA}
 ## ```bash
 ## wget https://s3.climb.ac.uk/nanopore/E_coli_K12_1D_R9.2_SpotON_2.tgz
 ## tar -xvf E_coli_K12_1D_R9.2_SpotON_2.tgz
-## python3 ${PWD}/scripts/extract.py ${PWD}/E_coli_K12_1D_R9.2_SpotON_2/downloads/pass/ 1200 ${QUERIES}/events.json
+## python3 ${PWD}/scripts/extract.py ${PWD}/E_coli_K12_1D_R9.2_SpotON_2/downloads/pass/ 1200 ${QUERY}
 ## ```
 ## It requires ONT's fast5 API packages.
 QUERY=${DATA}/events.json
@@ -64,13 +64,13 @@ QUERY_SIZE=250
 
 ## Baseline(Sub dynamic time warping without chunking)
 echo "refsize,querysize,true_positive,false_positive,positive_num,test_num,method,metric,power" > result/score_baseline_sub_wo_chunking.csv
-cargo run --release -- $MODEL $REFSIZE $ECOLIREF $QUERIES $SAM Sub 500 KNN Hill 0 >> result/score_baseline_sub_wo_chunking.csv
+cargo run --release -- $MODEL $REFSIZE $ECOLIREF $QUERY $SAM Sub 500 KNN Hill 0 >> result/score_baseline_sub_wo_chunking.csv
 
 echo "refsize,querysize,true_positive,false_positive,positive_num,test_num,method,metric,power" > result/score_baseline_sub_w_chunking.csv
 # Sub dtw mode
 for power in $(seq 35 1 40)
 do
-    cargo run --release  $MODEL $REFSIZE $ECOLIREF $QUERIES $SAM Sub $QUERY_SIZE KNN Hill ${power} >> result/score_baseline_sub_w_chunking.csv
+    cargo run --release  $MODEL $REFSIZE $ECOLIREF $QUERY $SAM Sub $QUERY_SIZE KNN Hill ${power} >> result/score_baseline_sub_w_chunking.csv
 done
 
 
@@ -82,7 +82,7 @@ do
     do
 	    for power in $(seq 35 1 38)
 	    do
-	        cargo run --release $MODEL $REFSIZE $ECOLIREF $QUERIES $SAM Scouting,${scouts},${packs} $QUERY_SIZE KNN Hill ${power} >> result/score_baseline_scouting_w_chunking.csv
+	        cargo run --release $MODEL $REFSIZE $ECOLIREF $QUERY $SAM Scouting,${scouts},${packs} $QUERY_SIZE KNN Hill ${power} >> result/score_baseline_scouting_w_chunking.csv
 	    done
     done
 done
@@ -96,7 +96,7 @@ do
     do
 	    for power in $(seq 35 1 38)
 	    do
-	        cargo run --release $MODEL $REFSIZE $ECOLIREF $QUERIES $SAM Scouting,${scouts},${packs} $QUERY_SIZE PC Hill ${power} >> result/score_proposed.csv
+	        cargo run --release $MODEL $REFSIZE $ECOLIREF $QUERY $SAM Scouting,${scouts},${packs} $QUERY_SIZE PC Hill ${power} >> result/score_proposed.csv
 	    done
     done
 done
@@ -107,6 +107,6 @@ for bandwidth in $(seq 11 10 91)
 do
     for power in $(seq 35 1 40)
     do
-	    cargo run --release $MODEL $REFSIZE $ECOLIREF $QUERIES $SAM Chiba,${bandwidth} 500 KNN Hill ${power} >> result/score_baseline_sakoechiba_w_chunking.csv
+	    cargo run --release $MODEL $REFSIZE $ECOLIREF $QUERY $SAM Chiba,${bandwidth} 500 KNN Hill ${power} >> result/score_baseline_sakoechiba_w_chunking.csv
     done
 done

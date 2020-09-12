@@ -59,6 +59,7 @@ fi
 
 ## The amount of events this script can see to map a event sequence to reference.
 QUERY_SIZE=250
+mkdir -p result/
 
 ### =================== RUN ===========================
 
@@ -72,7 +73,7 @@ do
     do
 	    for power in $(seq 35 1 38)
 	    do
-	        cargo run --release $MODEL $REFSIZE $ECOLIREF $QUERIES $SAM Scouting,${scouts},${packs} $QUERY_SIZE PC Hill ${power} >> result/score_proposed.csv
+	        cargo run --release $MODEL $REFSIZE $ECOLIREF $QUERY $SAM Scouting,${scouts},${packs} $QUERY_SIZE PC Hill ${power} >> result/score_proposed.csv
 	    done
     done
 done
